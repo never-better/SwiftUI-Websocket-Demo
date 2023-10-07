@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹소켓</title>
+
+    <style>
+      .empty-space {
+        height: 20px;
+      }
+    </style>
+</head>
+<body>
+    <h1>웹소켓 테스트</h1>
+
+    <input type="text" id="input" />
+
+    <!-- 버튼 2개 생성 -->
+    <button id="btn_send">메시지 전송</button>
+    <button id="btn_close">연결 끊기</button>
+
+    <div class="empty-space"></div>
+
+    <div id="chat-log"></div>
+</body>
+<script>
+    // 1. 웹소켓 클라이언트 객체 생성
+    const webSocket = new WebSocket("ws://localhost:8001");
+
+    // 2. 웹소켓 이벤트 처리
+    // 연결 이벤트 처리
+    webSocket.onopen = ()=>{
+        console.log("웹소켓서버와 연결 성공");
+    };
+
+    // 메세지 수신 이벤트 처리
+    function receiveMessage(event) {
+
+      // JSON 파싱
+      let jsonData = JSON.parse(event.data);
+      let messageText = jsonData.nickname + " : " + jsonData.text ;
+
+      // div 태그에 text를 추가해줌 <div> server : 뭐시기 ~ </div>
+      const chat = document.createElement("div");
+      const message = document.createTextNode(messageText);
+      chat.appendChild(message);
+
+      // chatlog 태그에 위에서 만든 div 태그 추가함
+      const chatLog = document.getElementById("chat-log");
+      chatLog.appendChild(chat);
+    }
+
+    webSocket.onmessage = receiveMessage
+
+    // 연결 종료 이벤트 처리
+    webSocket.onclose = function(){
+        console.log("서버 웹소켓 연결 종료");
+    }
+
+    // 에러 발생 이벤트 처리
+    webSocket.onerror = function(event){
+        console.log(event)
+    }
+
+    // 3. 버튼 클릭 이벤트 처리
+    // 웹소켓 서버에게 메세지 보내기
+    function sendMessage() {
+        const nickname = "Node";
+        const message = document.getElementById("input").value;
+
+        const messageModel = {
+            id: "chrome",
+            nickname: "Node",
+            text: message
+        };
+
+        webSocket.send(JSON.stringify(messageModel));
+
+        document.getElementById('input').value = "";
+    }
+
+    // "btn_send" 버튼을 클릭할 때 sendMessage 함수 호출
+    document.getElementById("btn_send").onclick = sendMessage;
+
+    // 웹소켓 서버와 연결 끊기
+    function sendClose() {
+        if(webSocket.readyState === webSocket.OPEN){ // 연결 상태 확인
+              webSocket.close(); // 연결 종료
+          } else{
+              alert("연결된 웹소켓 서버가 없습니다.");
+          }
+    }
+    document.getElementById("btn_close").onclick = sendClose;
+
+    // 엔터키
+    document.getElementById('input').addEventListener("keydown", (event) => {
+	      if (event.isComposing) return // 한글 엔터 입력 시 2번눌리는거 방지
+        if (event.key === 'Enter') {
+          sendMessage();
+        }
+    });
+
+</script>
+</html>
